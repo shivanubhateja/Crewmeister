@@ -11,6 +11,7 @@ const readJsonFile = (path) => new Promise((resolve) => fs.readFile(path, 'utf8'
 export const members = () => readJsonFile(MEMBERS_PATH);
 export const absences = () => readJsonFile(ABSENCES_PATH);
 
+// creating map with userid as key of the map, making easy to get details of user using user's userid
 export const MembersMap = async () => {
   var membersMap = new Map();
   const allMembers = await members();
@@ -18,6 +19,7 @@ export const MembersMap = async () => {
   return membersMap;
 }
 
+// creating map with key as userId, to make it easy to retrive data for a particular user
 export const AbsenceeMap = async () => {
   var absenceeMap = new Map();
   const allAbsences = await absences();
@@ -31,13 +33,10 @@ export const AbsenceeMap = async () => {
   return absenceeMap;
 }  
 
+// plain list of absences from absencees.json with name of member
 export const AbsenceesListWithMemberName = async () => {
-  console.log("testing 1");
   var memberMap = await MembersMap();
-  console.log("222222", memberMap.get(644));
   const allAbsences = await absences();
-  console.log(allAbsences, "111111111");
-  allAbsences.forEach(a => a.name = memberMap.get(a.userId));  
-  console.log(allAbsences, "222222");
+  allAbsences.forEach(a => a.name = memberMap.get(a.userId).name);  
   return allAbsences;
 }

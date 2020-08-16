@@ -37,12 +37,14 @@ describe('absences', () => {
   });
 
 
-  describe('test list of absences', async () => {
-    it("check if name exists", async () => {
-      AbsenceesListWithMemberName().then((absencees) => {
-        console.log(absencees);
+  describe('List of absencees with name', async () => {
+    it("Check if name exists", async () => {
+    AbsenceesListWithMemberName().then((absencees) => {
+      // check if all entries exists
+      assert(absencees.length == 42);
         absencees.forEach(entry => {
-          assert(entry.name == undefined);
+          // check if entries have names
+          assert(entry.name);
         });
       })
     });

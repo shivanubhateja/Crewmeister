@@ -1,6 +1,6 @@
 import express from 'express';
 import path from 'path';
-import { getAbsenceesOfAUser, getAbsenceesInDateRange, getAllAbsencees, generateIcsFileForAbsences, formatAbsenceesIntoText, formatAbsenceesOfUserIntoText, formatAllLeavePlansIntoText } from '../services/LeaveManagement'
+import { getAbsenceesInDateRange, getAllAbsencees, generateIcsFileForAbsences, formatAbsenceesIntoText, formatAbsenceesOfUserIntoText, formatAllLeavePlansIntoText, getAbsenceesOfAUser } from '../services/LeaveManagement'
 
 const app = express()
 const port = process.env.PORT || 3000;
@@ -11,9 +11,9 @@ app.get('/', async (req, res) => {
         <br/>
         <br/>
         APIs: <br/>
-        1. Get Users leave plan from user id. Click => <a target="_blank" href="http://localhost:3000/user?userId=644"> Leave Plan for userId 644 </a> <br/>
-        2. Get leave plan for all users. Click => <a target="_blank" href="http://localhost:3000/allAbsences"> Leave Plan for all users </a> <br/>
-        3. Get leave plan for all in date range. Click => <a target="_blank" href="http://localhost:3000/dateRange?startDate=2017-01-01&endDate=2017-02-01"> Leave Plan for all users in range 1 Jan 2017 to 1 Feb 2017</a> <br/>
+        1. Get Users leave plan from user id ( Only approved leaves ). Click => <a target="_blank" href="http://localhost:3000/user?userId=644"> Leave Plan for userId 644 </a> <br/>
+        2. Get leave plan for all users ( Both approved and rejected leaves ). Click => <a target="_blank" href="http://localhost:3000/allAbsences"> Leave Plan for all users </a> <br/>
+        3. Get leave plan for all in date range ( Only approved leaves ). Click => <a target="_blank" href="http://localhost:3000/dateRange?startDate=2017-01-01&endDate=2017-02-01"> Leave Plan for all users in range 1 Jan 2017 to 1 Feb 2017</a> <br/>
         4. Download ical file. Click => <a target="_blank" href="http://localhost:3000/downloadCalender"> Download ical file for all absencees</a> <br/>
 
         <br/>
@@ -70,7 +70,7 @@ app.get('/dateRange', async (req, res) => {
 });
 
 app.get("/allAbsences", async (req, res) => {
-    var response = await formatAllLeavePlansIntoText();
+    const response = await formatAllLeavePlansIntoText();
     res.send(response);
 })
 

@@ -1,20 +1,22 @@
 import { members, absences, AbsenceeMap, MembersMap } from '../api';
-import { DifferenceInPeriods } from './utils';
+import { DifferenceInPeriods, getEventSummaryBasedOnTypeOfLeave, getLeaveType } from './utils';
 import { USER_DOES_NOT_EXIST, LEAVE_TYPE_SICKNESS, LEAVE_TYPE_VACATION } from '../constants';
 import moment from 'moment';
 import { generateCalenderFile, addEventToCalender, saveCalToFile } from './iCalhandler';
 moment().format();
 
-
+// get absencees of a member by providing member's userId
 export const allAbsenciesAppliedByMember = async (userId) => {
     const allAbsences = await AbsenceeMap();
     if (allAbsences.has(userId)) {
         return allAbsences.get(userId);
     } else {
+        // if member does not exists
         return []
     }
 }
 
+// get all applied absences for all users, (rejected + approved)
 export const allAbsenciesApplied = async () => {
     const allAbsences = await absences();
     const memberMap = await MembersMap();
@@ -22,6 +24,7 @@ export const allAbsenciesApplied = async () => {
     return allAbsences;
 }
 
+// get all approved absences for a member with userid
 export const allApprovedAbsenciesOfMember = async (userId) => {
     const allAbsences = await AbsenceeMap();
     if (allAbsences.has(userId)) {
@@ -31,6 +34,7 @@ export const allApprovedAbsenciesOfMember = async (userId) => {
     }
 }
 
+// get all approved absences for all users
 export const allAbsenciesApproved = async () => {
     const allAbsences = await absences();
     const memberMap = await MembersMap();
@@ -39,6 +43,7 @@ export const allAbsenciesApproved = async () => {
     return onlyApprovedLeaves;
 }
 
+// get all rejected absences of member using userid
 export const allRejectedAbsenciesOfMember = async (userId) => {
     const allAbsences = await AbsenceeMap();
     if (allAbsences.has(userId)) {
@@ -48,6 +53,7 @@ export const allRejectedAbsenciesOfMember = async (userId) => {
     }
 }
 
+// get all rejected absences of user
 export const allAbsenciesRejected = async () => {
     const allAbsences = await absences();
     const memberMap = await MembersMap();
@@ -55,6 +61,8 @@ export const allAbsenciesRejected = async () => {
     onlyRejectedLeaves.forEach(a => a.Name = memberMap.get(a.userId));
     return onlyRejectedLeaves;
 }
+
+// get all absencees in date range
 export const getAbsenceesInDateRange = async (startDate, endDate) => {
     const membersMap = await MembersMap();
     const absenceesList = await absences();
@@ -79,29 +87,17 @@ export const getAbsenceesInDateRange = async (startDate, endDate) => {
     return Array.from(dateRangeAbsenceMap.keys()).map(k => dateRangeAbsenceMap.get(k));
 }
 
+// get all absencees of a user
 export const getAbsenceesOfAUser = async (userId) => {
-    const allApplied = await allAbsenciesAppliedByMember(userId);
     const memberDetails = await getMemberDetails(userId);
     const acceptedLeaves = await allApprovedAbsenciesOfMember(userId);
-    const rejectedLeaved = await allRejectedAbsenciesOfMember(userId);
     return {
         memberDetails,
-        allApplied,
         acceptedLeaves,
-        rejectedLeaved
     }
 }
 
-export const getAllAbsencees = async () => {
-    const allApplied = await allAbsenciesApplied();
-    const acceptedLeaves = await allAbsenciesApproved();
-    const rejectedLeaved = await allAbsenciesRejected();
-    return {
-        allApplied,
-        acceptedLeaves,
-        rejectedLeaved
-    }
-}
+// get member details from userid
 export const getMemberDetails = async (userId) => {
     const members = await MembersMap();
     if (members.has(userId)) {
@@ -112,11 +108,11 @@ export const getMemberDetails = async (userId) => {
 
 }
 
+// generate ics file for absences
 export const generateIcsFileForAbsences = async () => {
     try {
         const calender = generateCalenderFile();
-        const absenceeDetails = await getAllAbsencees();
-        const onlyApprovedAbsents = absenceeDetails.acceptedLeaves;
+        const onlyApprovedAbsents = await allAbsenciesApproved();
         onlyApprovedAbsents.forEach(a => addEventToCalender(calender, getEventSummaryBasedOnTypeOfLeave(a.type, a.name), a.memberNote, a.startDate, a.endDate));
         saveCalToFile(calender);
         return { success: true };
@@ -125,37 +121,29 @@ export const generateIcsFileForAbsences = async () => {
     }
 }
 
-export const printAllLeavePlans = async () => {
-    const absencees = await AbsenceeMap();
-    const membersMap = await MembersMap();
-    Array.from(absencees.keys()).forEach(k => {
-        console.log(`${membersMap.get(k).name}'s leave plan`);
-        absencees.get(k).forEach((leave) => {
-            console.log(`\t`, `On ${GetLeaveType(leave.type)} from ${leave.startDate} to ${leave.endDate}`, `(${DifferenceInPeriods(leave.startDate, leave.endDate, 'days', true)}) Day(s)`);
-        })
-    });
-}
-
+// format absencees into text to show in browser
 export const formatAbsenceesIntoText = (absencees) => {
     var formattedText = ``;
     absencees.forEach(member => {
         formattedText += `${member.name}'s leave plan <br/>`;
         member.absenceList.forEach(leave => {
-            formattedText += `- On ${GetLeaveType(leave.type)} from ${leave.startDate} to ${leave.endDate} (${DifferenceInPeriods(leave.startDate, leave.endDate, 'days', true)}) Day(s) <br/>`;
+            formattedText += `- On ${getLeaveType(leave.type)} from ${leave.startDate} to ${leave.endDate} (${DifferenceInPeriods(leave.startDate, leave.endDate, 'days', true)}) Day(s) <br/>`;
         })
     });
     return formattedText;
 }
+
+// format user's absencees into text to show in browser
 export const formatAbsenceesOfUserIntoText = (details) => {
     var formattedText = ``;
-    console.log("formatting");
     formattedText += `${details.memberDetails.name}'s leave plan <br/>`;
     details.acceptedLeaves.forEach(leave => {
-        formattedText += `- On ${GetLeaveType(leave.type)} from ${leave.startDate} to ${leave.endDate} (${DifferenceInPeriods(leave.startDate, leave.endDate, 'days', true)}) Day(s) <br/>`;
+        formattedText += `- On ${getLeaveType(leave.type)} from ${leave.startDate} to ${leave.endDate} (${DifferenceInPeriods(leave.startDate, leave.endDate, 'days', true)}) Day(s) <br/>`;
     });
     return formattedText;
 }
 
+// format all absencees into text to show in browser
 export const formatAllLeavePlansIntoText = async () => {
     var formattedText = ``;
     const absencees = await AbsenceeMap();
@@ -163,28 +151,20 @@ export const formatAllLeavePlansIntoText = async () => {
     Array.from(absencees.keys()).forEach(k => {
         formattedText += `${membersMap.get(k).name}'s leave plan <br/>`;
         absencees.get(k).forEach((leave) => {
-            formattedText += `- On ${GetLeaveType(leave.type)} from ${leave.startDate} to ${leave.endDate} (${DifferenceInPeriods(leave.startDate, leave.endDate, 'days', true)}) Day(s) <br/>`;
+            formattedText += `- On ${getLeaveType(leave.type)} from ${leave.startDate} to ${leave.endDate} (${DifferenceInPeriods(leave.startDate, leave.endDate, 'days', true)}) Day(s) ${leave.confirmedAt ? '<span style="color:green">Confirmed</span>': '<span style="color:red">Rejected</span>'} <br/>`;
         });
     });
     return formattedText;
 }
 
-
-
-export const getEventSummaryBasedOnTypeOfLeave = (type, name) => {
-    switch (type) {
-        case LEAVE_TYPE_SICKNESS:
-            return `${name} is sick`
-        case LEAVE_TYPE_VACATION:
-            return `${name} on vacation`
-    }
-}
-
-export const GetLeaveType = (type) => {
-    switch (type) {
-        case LEAVE_TYPE_SICKNESS:
-            return `sick leave`
-        case LEAVE_TYPE_VACATION:
-            return `vacation`
-    }
+// print all leaves in console. this is for command handler
+export const printAllLeavePlans = async () => {
+    const absencees = await AbsenceeMap();
+    const membersMap = await MembersMap();
+    Array.from(absencees.keys()).forEach(k => {
+        console.log(`${membersMap.get(k).name}'s leave plan`);
+        absencees.get(k).forEach((leave) => {
+            console.log(`\t`, `On ${getLeaveType(leave.type)} from ${leave.startDate} to ${leave.endDate}`, `(${DifferenceInPeriods(leave.startDate, leave.endDate, 'days', true)}) Day(s)`);
+        })
+    });
 }
